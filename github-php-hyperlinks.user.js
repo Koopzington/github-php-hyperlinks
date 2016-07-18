@@ -204,9 +204,7 @@
                 iterator = document.evaluate(classXpath, document, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
                 thisNode = iterator.iterateNext();
 
-                console.log(currentNamespace);
                 while (thisNode) {
-                    console.log(thisNode);
                     toBeModified.push(thisNode);
                     thisNode = iterator.iterateNext();
                 }
