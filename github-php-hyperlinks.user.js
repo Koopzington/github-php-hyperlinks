@@ -1,16 +1,22 @@
 // ==UserScript==
 // @name         GitHub PHP Hyperlinks
 // @namespace    https://github.com/Koopzington
-// @version      0.1
+// @version      0.2
 // @description  Enhances browsing through PHP code on GitHub by linking referenced classes
 // @author       koopzington@gmail.com
-// @match        https://github.com/*/*/blob/*
+// @match        https://github.com/*/*/*/*
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
-(function() {
-    'use strict';
+'use strict';
 
+// Also execute this script if content is getting loaded via pjax
+document.addEventListener("pjax:complete",function(){
+    start();
+});
+start();
+
+function start() {
     // Check if currently viewed file is a PHP file
     if (window.location.href.split('.php').length == 2) {
         // Grab reponame
@@ -252,4 +258,4 @@
             }
         }
     }
-})();
+};
