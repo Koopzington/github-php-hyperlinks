@@ -133,8 +133,10 @@
                     url: "https://packagist.org/p/" + repo + '.json',
                     onload: function (responseDetails) {
                         if (responseDetails.status == 200) {
-                            var reqData = JSON.parse(responseDetails.responseText).packages[repo]['dev-master'];
-                            checkAutoload(reqData);
+                            var reqData = JSON.parse(responseDetails.responseText).packages[repo];
+                            if (reqData.hasOwnProperty('dev-master')) {
+                                checkAutoload(reqData['dev-master']);
+                            }
                         }
                         resolve();
                     }
