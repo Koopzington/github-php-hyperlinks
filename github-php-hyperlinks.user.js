@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub PHP Hyperlinks
 // @namespace    https://github.com/Koopzington
-// @version      0.3
+// @version      0.4
 // @description  Enhances browsing through PHP code on GitHub by linking referenced classes
 // @author       koopzington@gmail.com
 // @match        https://github.com/*
