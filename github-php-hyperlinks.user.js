@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub PHP Hyperlinks
 // @namespace    https://github.com/Koopzington
-// @version      0.5
+// @version      0.6
 // @description  Enhances browsing through PHP code on GitHub by linking referenced classes
 // @author       koopzington@gmail.com
 // @match        https://github.com/*
@@ -186,10 +186,10 @@
             var currentRoot;
             var currentNamespace;
             var k;
-            var toBeModified = [];
-            var thisNode;
-            var iterator;
+            var toBeModified;
             var currentStatus;
+            var classXpath;
+            var anchorStart = '<a style="color: inherit;" href="https://github.com/';
 
             for (var j = 0; j < imports.length; ++j) {
                 currentRoot = undefined;
@@ -206,57 +206,73 @@
                     } else {
                         currentStatus = 'master';
                     }
+
                     // Find all direct uses of the classes and replace the content with links
                     classXpath = "//span[.='" + imports[j].alias + "']";
-                    iterator = document.evaluate(classXpath, document, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
-                    thisNode = iterator.iterateNext();
-
-                    while (thisNode) {
-                        toBeModified.push(thisNode);
-                        thisNode = iterator.iterateNext();
-                    }
+                    toBeModified = findElements(classXpath);
                     for (k = 0; k < toBeModified.length; ++k) {
-                        toBeModified[k].innerHTML = '<a style="color: inherit;" href="https://github.com/' + currentRoot.repo + '/blob/' + currentStatus + '/' + currentRoot.path + currentNamespace + '.php">' + toBeModified[k].innerHTML + '</a>';
+                        toBeModified[k].innerHTML = anchorStart + currentRoot.repo + '/blob/' + currentStatus + '/' + currentRoot.path + currentNamespace + '.php">' + toBeModified[k].innerHTML + '</a>';
+                    }
+
+                    // Find usages inside DocBlocks
+                    classXpath = "//span[@class='pl-k' and (.='@throws' or .='@return' or .='@param' or .='@var')]/following-sibling::text()[contains(concat(' ', normalize-space(.), ' '), ' " + imports[j].alias + " ') or contains(concat(' ', normalize-space(.), '[] '), ' " + imports[j].alias + "[] ') or contains(concat(' ', normalize-space(.), '\\'), ' " + imports[j].alias + "\\')]/parent::span";
+                    toBeModified = findElements(classXpath);
+                    for (k = 0; k < toBeModified.length; ++k) {
+                        // Get string behind span, trim and split by ' ' to be sure we don't have a variable name in there and split by '\'
+                        var hit = toBeModified[k].innerHTML.split('</span>')[1].trim().split(' ')[0].split('\\');
+                        // If hit is just the classname, generate one link, if a subnamespace is in there, generate two links
+                        if (hit.length == 1) {
+                            toBeModified[k].innerHTML = toBeModified[k].innerHTML.replace(
+                                imports[j].alias,
+                                anchorStart + currentRoot.repo + '/blob/' + currentStatus + '/' + currentRoot.path + currentNamespace + '.php">' + imports[j].alias + '</a>'
+                            );
+                        } else if (hit.length == 2) {
+                            toBeModified[k].innerHTML = toBeModified[k].innerHTML.replace(
+                                hit.join('\\'),
+                                anchorStart + currentRoot.repo + '/tree/' + currentStatus + '/' + currentRoot.path + currentNamespace + '">' + hit[0] + '\\' +
+                                anchorStart + currentRoot.repo + '/blob/' + currentStatus + '/' + currentRoot.path + hit.join('/') + '.php">' + hit[1] + '</a>'
+                            );
+                        }
                     }
 
                     // Do the same thing again, but this time for subnamespaces (e.g. "Element\")
                     classXpath = "//span[@class='pl-c1' and .='" + imports[j].alias + "\\']";
-                    iterator = document.evaluate(classXpath, document, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
-                    thisNode = iterator.iterateNext();
-                    toBeModified = [];
-                    while (thisNode) {
-                        toBeModified.push(thisNode);
-                        thisNode = iterator.iterateNext();
-                    }
+                    toBeModified = findElements(classXpath);
                     for (k = 0; k < toBeModified.length; ++k) {
-                        toBeModified[k].innerHTML = '<a style="color: inherit;" href="https://github.com/' + currentRoot.repo + '/tree/' + currentStatus + '/' + currentRoot.path + currentNamespace + '">' + toBeModified[k].innerHTML + '</a>';
+                        toBeModified[k].innerHTML = anchorStart + currentRoot.repo + '/tree/' + currentStatus + '/' + currentRoot.path + currentNamespace + '">' + toBeModified[k].innerHTML + '</a>';
                     }
 
                     // Do the same thing again, but this time for classes with subnamespaces (e.g. Element\Select::class
                     classXpath = "//span[@class='pl-c1' and .='" + imports[j].alias + "\\']/following-sibling::span[1]";
-                    iterator = document.evaluate(classXpath, document, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
-                    thisNode = iterator.iterateNext();
-                    toBeModified = [];
-                    while (thisNode) {
-                        toBeModified.push(thisNode);
-                        thisNode = iterator.iterateNext();
-                    }
+                    toBeModified = findElements(classXpath);
                     for (k = 0; k < toBeModified.length; ++k) {
-                        toBeModified[k].innerHTML = '<a style="color: inherit;" href="https://github.com/' + currentRoot.repo + '/blob/' + currentStatus + '/' + currentRoot.path + currentNamespace + '/' + toBeModified[k].innerHTML + '.php">' + toBeModified[k].innerHTML + '</a>';
+                        toBeModified[k].innerHTML = anchorStart + currentRoot.repo + '/blob/' + currentStatus + '/' + currentRoot.path + currentNamespace + '/' + toBeModified[k].innerHTML + '.php">' + toBeModified[k].innerHTML + '</a>';
                     }
 
                     // Add a Hyperlink to the use statement
-                    var classXpath = "//span[@class='pl-c1' and .='" + imports[j].name + "']";
+                    classXpath = "//span[@class='pl-c1' and .='" + imports[j].name + "']";
                     var node = document.evaluate(classXpath, document, null, XPathResult.ANY_UNORDERED_NODE_TYPE, null).singleNodeValue;
                     if (node !== null) {
                         // Use the amount of results of the upper search for subnamespace usages to determine if a link to a directory or to a file should be generated
                         if (toBeModified.length > 0) {
-                            node.innerHTML = '<a style="color: inherit;" href="https://github.com/' + currentRoot.repo + '/tree/' + currentStatus + '/' + currentRoot.path + currentNamespace + '">' + node.innerHTML + '</a>';
+                            node.innerHTML = anchorStart + currentRoot.repo + '/tree/' + currentStatus + '/' + currentRoot.path + currentNamespace + '">' + node.innerHTML + '</a>';
                         } else {
-                            node.innerHTML = '<a style="color: inherit;" href="https://github.com/' + currentRoot.repo + '/blob/' + currentStatus + '/' + currentRoot.path + currentNamespace + '.php">' + node.innerHTML + '</a>';
+                            node.innerHTML = anchorStart + currentRoot.repo + '/blob/' + currentStatus + '/' + currentRoot.path + currentNamespace + '.php">' + node.innerHTML + '</a>';
                         }
                     }
                 }
+            }
+
+            // Accepts a xpath query and returns a list of found nodes
+            function findElements(queryString) {
+                var iterator = document.evaluate(queryString, document, null, XPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
+                var thisNode = iterator.iterateNext();
+                var toBeModified = [];
+                while (thisNode) {
+                    toBeModified.push(thisNode);
+                    thisNode = iterator.iterateNext();
+                }
+                return toBeModified;
             }
         }
     }
