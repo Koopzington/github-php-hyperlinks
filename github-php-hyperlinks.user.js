@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GitHub PHP Hyperlinks
 // @namespace    https://github.com/Koopzington
-// @version      0.4
+// @version      0.5
 // @description  Enhances browsing through PHP code on GitHub by linking referenced classes
 // @author       koopzington@gmail.com
 // @match        https://github.com/*
@@ -112,13 +112,11 @@
                     if (responseDetails.status == 200) {
                         var data = JSON.parse(responseDetails.responseText);
                         for (var i = 0; i < data.length; ++i) {
-                            if (data[i].name.split('.php').length == 2) {
-                                var classname = data[i].name.split('.php')[0];
-                                imports.push({
-                                    name: filenamespace.innerHTML + '\\' + classname,
-                                    alias: classname
-                                });
-                            }
+                            var classname = data[i].name.split('.php')[0];
+                            imports.push({
+                                name: filenamespace.innerHTML + '\\' + classname,
+                                alias: classname
+                            });
                         }
                     }
                     editDOM();
