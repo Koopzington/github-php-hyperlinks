@@ -125,7 +125,7 @@
         }
 
         function getComposerOf(repo) {
-            return new Promise(function (resolve, reject) {
+            return new Promise(function (resolve) {
                 GM_xmlhttpRequest({
                     method: "GET",
                     url: "https://packagist.org/p/" + repo + '.json',
@@ -207,15 +207,18 @@
                         currentStatus = 'master';
                     }
 
-                    // Find all direct uses of the classes and replace the content with links
-                    classXpath = "//span[.='" + imports[j].alias + "']";
+                    // Find all direct uses of the classes and replace the content with links (and ignore the ones withe a leading backslash
+                    classXpath = "//span[.='" + imports[j].alias + "' and not(preceding-sibling::span[@class='pl-c1' and .='\\'])]";
                     toBeModified = findElements(classXpath);
                     for (k = 0; k < toBeModified.length; ++k) {
                         toBeModified[k].innerHTML = anchorStart + currentRoot.repo + '/blob/' + currentStatus + '/' + currentRoot.path + currentNamespace + '.php">' + toBeModified[k].innerHTML + '</a>';
                     }
 
                     // Find usages inside DocBlocks
-                    classXpath = "//span[@class='pl-k' and (.='@throws' or .='@return' or .='@param' or .='@var')]/following-sibling::text()[contains(concat(' ', normalize-space(.), ' '), ' " + imports[j].alias + " ') or contains(concat(' ', normalize-space(.), '[] '), ' " + imports[j].alias + "[] ') or contains(concat(' ', normalize-space(.), '\\'), ' " + imports[j].alias + "\\')]/parent::span";
+                    classXpath = "//span[@class='pl-k' and (.='@throws' or .='@return' or .='@param' or .='@var')]/following-sibling::text()[" +
+                        "contains(concat(' ', normalize-space(.), ' '), ' " + imports[j].alias + " ') " +
+                        "or contains(concat(' ', normalize-space(.), '[] '), ' " + imports[j].alias + "[] ') " +
+                        "or contains(concat(' ', normalize-space(.), '\\'), ' " + imports[j].alias + "\\')]/parent::span";
                     toBeModified = findElements(classXpath);
                     for (k = 0; k < toBeModified.length; ++k) {
                         // Get string behind span, trim and split by ' ' to be sure we don't have a variable name in there and split by '\'
