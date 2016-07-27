@@ -215,14 +215,21 @@
                     }
 
                     // Find usages inside DocBlocks
-                    classXpath = "//span[@class='pl-k' and (.='@throws' or .='@return' or .='@param' or .='@var')]/following-sibling::text()[" +
-                        "contains(concat(' ', normalize-space(.), ' '), ' " + imports[j].alias + " ') " +
-                        "or contains(concat(' ', normalize-space(.), '[] '), ' " + imports[j].alias + "[] ') " +
-                        "or contains(concat(' ', normalize-space(.), '\\'), ' " + imports[j].alias + "\\')]/parent::span";
+                    classXpath = "//span[@class='pl-c' and (" +
+                            "contains(., '@throws') " +
+                            "or contains(., '@return') " +
+                            "or contains(., '@param') " +
+                            "or contains(., '@var')" +
+                            "or contains(., '@property')" +
+                        ") and (" +
+                            "contains(concat(' ', normalize-space(.), ' '), ' " + imports[j].alias + " ') " +
+                            "or contains(concat(' ', normalize-space(.), '[] '), ' " + imports[j].alias + "[] ') " +
+                            "or contains(concat(' ', normalize-space(.), '\\'), ' " + imports[j].alias + "\\')" +
+                        ")]";
                     toBeModified = findElements(classXpath);
                     for (k = 0; k < toBeModified.length; ++k) {
-                        // Get string behind span, trim and split by ' ' to be sure we don't have a variable name in there and split by '\'
-                        var hit = toBeModified[k].innerHTML.split('</span>')[1].trim().split(' ')[0].split('\\');
+                        // Use innerText (which strips any HTML inside, trim and split by ' ' to get the part after @something and split by '\'
+                        var hit = toBeModified[k].innerText.trim().split(' ')[2].split('\\');
                         // If hit is just the classname, generate one link, if a subnamespace is in there, generate two links
                         if (hit.length == 1) {
                             toBeModified[k].innerHTML = toBeModified[k].innerHTML.replace(
